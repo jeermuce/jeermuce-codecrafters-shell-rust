@@ -11,8 +11,7 @@ fn main() {
         let _read = stdin.read_line(&mut input).unwrap();
 
         match input.trim() {
-            "exit" => {
-                println!("done");
+            "exit 0" => {
                 std::process::exit(0);
             }
             _ => {
