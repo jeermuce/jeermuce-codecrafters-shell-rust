@@ -17,7 +17,7 @@ fn main() {
             std::process::exit(0);
         }
         _ => {
-            println!("{input}: command not found");
+            println!("{}: command not found", input.trim());
         }
     }
 }
