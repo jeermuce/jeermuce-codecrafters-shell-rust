@@ -9,7 +9,7 @@ fn main() {
     // Wait for user input
     let stdin = io::stdin();
     let mut input = String::new();
-    let read = stdin.read_line(&mut input).unwrap();
+    let _read = stdin.read_line(&mut input).unwrap();
 
     match input.trim() {
         "exit" => {
@@ -17,7 +17,7 @@ fn main() {
             std::process::exit(0);
         }
         _ => {
-            println!("Unrecognized command: {}", input.trim());
+            println!("{input}: command not found");
         }
     }
 }
