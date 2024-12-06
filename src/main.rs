@@ -9,5 +9,15 @@ fn main() {
     // Wait for user input
     let stdin = io::stdin();
     let mut input = String::new();
-    stdin.read_line(&mut input).unwrap();
+    let read = stdin.read_line(&mut input).unwrap();
+
+    match input.trim() {
+        "exit" => {
+            println!("done");
+            std::process::exit(0);
+        }
+        _ => {
+            println!("Unrecognized command: {}", input.trim());
+        }
+    }
 }
