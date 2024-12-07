@@ -72,14 +72,12 @@ fn execute_command(args: SplitWhitespace, program: PathBuf) -> Result<ExitStatus
         Err(e) => Err(anyhow::Error::from(e)),
     }
 }
-fn pwd_command(_args: SplitWhitespace, _registry: &CommandRegistry) {
-    let mut command = Command::new("pwd");
 
-    match command.spawn() {
-        Ok(child) => println!("{:?}", child),
-        Err(e) => println!("{e}"),
-    }
+fn pwd_command(_args: SplitWhitespace, _registry: &CommandRegistry) {
+    let current_dir = env::current_dir().unwrap();
+    println!("{}", current_dir.display());
 }
+
 fn type_command(arr: SplitWhitespace, registry: &CommandRegistry) {
     if let Some(command) = arr.into_iter().next() {
         if registry.commands.contains_key(command) {
