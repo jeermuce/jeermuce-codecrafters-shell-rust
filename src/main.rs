@@ -2,9 +2,12 @@
 use std::collections::HashMap;
 use std::env;
 use std::io::{self, Write};
-use std::path::Path;
+use std::path::{Path, PathBuf};
+use std::process::{Command, ExitStatus};
 use std::rc::Rc;
 use std::str::SplitWhitespace;
+
+use anyhow::Error;
 
 type CommandFn = fn(SplitWhitespace, &CommandRegistry);
 
@@ -26,9 +29,24 @@ impl CommandRegistry {
     fn execute(&self, command: &str, args: SplitWhitespace) {
         if let Some(&command_fn) = self.commands.get(command) {
             command_fn(args, self);
+        } else if let Some(path) = find_in_path(command) {
+            drop(execute_command(args, path))
         } else {
             eprintln!("{command}: command not found");
         }
+    }
+}
+fn execute_command(args: SplitWhitespace, program: PathBuf) -> Result<ExitStatus, Error> {
+    let args: Vec<&str> = args.collect();
+    let mut command = Command::new(program);
+    command.args(args);
+
+    match command.spawn() {
+        Ok(mut child) => match child.wait() {
+            Ok(status) => Ok(status),
+            Err(e) => Err(anyhow::Error::from(e)),
+        },
+        Err(e) => Err(anyhow::Error::from(e)),
     }
 }
 fn main() {
@@ -58,26 +76,25 @@ fn type_command(arr: SplitWhitespace, registry: &CommandRegistry) {
     if let Some(command) = arr.into_iter().next() {
         if registry.commands.contains_key(command) {
             println!("{command} is a shell builtin");
+        } else if let Some(dir) = find_in_path(command) {
+            println!("{command} is {}", dir.display());
         } else {
-            check_path(command);
+            eprintln!("{command}: not found");
         }
     }
 }
 
-fn check_path(command: &str) {
+fn find_in_path(command: &str) -> Option<PathBuf> {
     let path = env::var("PATH").unwrap_or_default();
-    let mut found = false;
+    let mut pathdir: Option<PathBuf> = None;
     for dir in path.split(':') {
         let command_path = Path::new(dir).join(command);
         if command_path.exists() {
-            println!("{command} is {}", command_path.display());
-            found = true;
+            pathdir = Some(command_path);
             break;
         }
     }
-    if !found {
-        eprintln!("{command}: not found");
-    }
+    pathdir
 }
 
 fn exit_command(arr: SplitWhitespace, _registry: &CommandRegistry) {
