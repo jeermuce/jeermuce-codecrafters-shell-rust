@@ -36,23 +36,11 @@ impl CommandRegistry {
         }
     }
 }
-fn execute_command(args: SplitWhitespace, program: PathBuf) -> Result<ExitStatus, Error> {
-    let args: Vec<&str> = args.collect();
-    let mut command = Command::new(program);
-    command.args(args);
-
-    match command.spawn() {
-        Ok(mut child) => match child.wait() {
-            Ok(status) => Ok(status),
-            Err(e) => Err(anyhow::Error::from(e)),
-        },
-        Err(e) => Err(anyhow::Error::from(e)),
-    }
-}
 fn main() {
     let mut registry = CommandRegistry::new();
     registry.add_new(Rc::from("exit"), exit_command);
     registry.add_new(Rc::from("echo"), echo_command);
+    registry.add_new(Rc::from("pwd"), pwd_command);
     registry.add_new(Rc::from("teco"), |args, _| {
         println!("{}", args.collect::<Vec<&str>>().join(" "))
     });
@@ -71,7 +59,27 @@ fn main() {
         }
     }
 }
+fn execute_command(args: SplitWhitespace, program: PathBuf) -> Result<ExitStatus, Error> {
+    let args: Vec<&str> = args.collect();
+    let mut command = Command::new(program);
+    command.args(args);
 
+    match command.spawn() {
+        Ok(mut child) => match child.wait() {
+            Ok(status) => Ok(status),
+            Err(e) => Err(anyhow::Error::from(e)),
+        },
+        Err(e) => Err(anyhow::Error::from(e)),
+    }
+}
+fn pwd_command(_args: SplitWhitespace, _registry: &CommandRegistry) {
+    let mut command = Command::new("pwd");
+
+    match command.spawn() {
+        Ok(child) => println!("{:?}", child),
+        Err(e) => println!("{e}"),
+    }
+}
 fn type_command(arr: SplitWhitespace, registry: &CommandRegistry) {
     if let Some(command) = arr.into_iter().next() {
         if registry.commands.contains_key(command) {
