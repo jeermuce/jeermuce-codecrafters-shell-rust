@@ -40,12 +40,10 @@ fn main() {
     let mut registry = CommandRegistry::new();
     registry.add_new(Rc::from("exit"), exit_command);
     registry.add_new(Rc::from("echo"), echo_command);
-    registry.add_new(Rc::from("pwd"), pwd_command);
-    registry.add_new(Rc::from("teco"), |args, _| {
-        println!("{}", args.collect::<Vec<&str>>().join(" "))
-    });
-
     registry.add_new(Rc::from("type"), type_command);
+    registry.add_new(Rc::from("pwd"), pwd_command);
+    registry.add_new(Rc::from("cd"), cd_command);
+
     let stdin = io::stdin();
     loop {
         print!("$ ");
@@ -59,6 +57,26 @@ fn main() {
         }
     }
 }
+
+fn cd_command(args: SplitWhitespace, _registry: &CommandRegistry) {
+    if let Some(dir) = args.into_iter().next() {
+        match dir.chars().next() {
+            Some('~') => {
+                let _ = env::set_current_dir("/home/");
+            }
+            None => println!(),
+            _ => {
+                let other = env::set_current_dir(Path::new(dir));
+                if other.is_err() {
+                    eprintln!("{}: No such file or directory", dir);
+                }
+            }
+        }
+    } else {
+        println!("tis");
+    }
+}
+
 fn execute_command(args: SplitWhitespace, program: PathBuf) -> Result<ExitStatus, Error> {
     let args: Vec<&str> = args.collect();
     let mut command = Command::new(program);
