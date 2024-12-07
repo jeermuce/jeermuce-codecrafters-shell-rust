@@ -1,11 +1,11 @@
+use anyhow::Error;
+use shlex;
 use std::collections::HashMap;
 use std::io::Write;
 use std::path::{Path, PathBuf};
 use std::process::{Command, ExitStatus};
 use std::rc::Rc;
 use std::{env, io};
-
-use anyhow::Error;
 
 pub fn run_shell(registry: CommandRegistry) {
     let stdin = io::stdin();
@@ -16,22 +16,22 @@ pub fn run_shell(registry: CommandRegistry) {
         stdin.read_line(&mut input).unwrap();
 
         if let Some((command, args)) = parse_input(&input) {
-            let args = shellwords::split(&args).unwrap_or_else(|_| vec![]);
             registry.execute(command, args);
         }
     }
 }
 
-fn parse_input(input: &str) -> Option<(String, String)> {
-    let parts: Vec<&str> = input.trim().splitn(2, ' ').collect();
-
-    if parts.len() == 2 {
-        Some((parts[0].to_string(), parts[1].to_string()))
+fn parse_input(input: &str) -> Option<(String, Vec<String>)> {
+    let lexer = shlex::Shlex::new(input);
+    let parts: Vec<String> = lexer.collect();
+    if !parts.is_empty() {
+        let command = parts[0].clone();
+        let args = parts[1..].to_vec();
+        Some((command, args))
     } else {
-        Some((parts[0].to_string(), "".to_string()))
+        None
     }
 }
-
 pub type CommandFn = fn(Vec<String>, &CommandRegistry);
 
 pub struct CommandRegistry {
@@ -68,6 +68,7 @@ impl CommandRegistry {
                 Err(e) => eprintln!("{}: failed with error {:?}", command, e),
             }
         } else {
+            //command not found
             eprintln!("{command}: not found");
         }
     }
