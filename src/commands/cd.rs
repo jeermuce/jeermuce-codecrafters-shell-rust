@@ -1,8 +1,8 @@
-use std::{env, path::Path, str::SplitWhitespace};
+use std::{env, path::Path};
 
 use crate::shell::CommandRegistry;
 
-pub fn cd_command(args: SplitWhitespace, _registry: &CommandRegistry) {
+pub fn cd_command(args: Vec<String>, _registry: &CommandRegistry) {
     if let Some(dir) = args.into_iter().next() {
         match dir.chars().next() {
             Some('~') => {
@@ -17,7 +17,7 @@ pub fn cd_command(args: SplitWhitespace, _registry: &CommandRegistry) {
             }
             None => println!(),
             _ => {
-                let other = env::set_current_dir(Path::new(dir));
+                let other = env::set_current_dir(Path::new(&dir));
                 if other.is_err() {
                     eprintln!("{}: No such file or directory", dir);
                 }

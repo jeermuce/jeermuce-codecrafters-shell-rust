@@ -3,7 +3,6 @@ use std::io::Write;
 use std::path::{Path, PathBuf};
 use std::process::{Command, ExitStatus};
 use std::rc::Rc;
-use std::str::SplitWhitespace;
 use std::{env, io};
 
 use anyhow::Error;
@@ -17,26 +16,26 @@ pub fn run_shell(registry: CommandRegistry) {
         stdin.read_line(&mut input).unwrap();
 
         if let Some((command, args)) = parse_input(&input) {
-            registry.execute(command, args.split_whitespace());
+            let args = shellwords::split(&args).unwrap_or_else(|_| vec![]);
+            registry.execute(command, args);
         }
     }
 }
 
-pub fn parse_input(input: &str) -> Option<(&str, &str)> {
-    let trimmed = input.trim();
-    if let Some(pos) = trimmed.find(' ') {
-        Some((&trimmed[..pos], &trimmed[pos + 1..]))
-    } else if !trimmed.is_empty() {
-        Some((trimmed, ""))
+fn parse_input(input: &str) -> Option<(String, String)> {
+    let parts: Vec<&str> = input.trim().splitn(2, ' ').collect();
+
+    if parts.len() == 2 {
+        Some((parts[0].to_string(), parts[1].to_string()))
     } else {
-        None
+        Some((parts[0].to_string(), "".to_string()))
     }
 }
 
-pub type CommandFn = fn(SplitWhitespace, &CommandRegistry);
+pub type CommandFn = fn(Vec<String>, &CommandRegistry);
 
 pub struct CommandRegistry {
-    pub commands: HashMap<Rc<str>, CommandFn>,
+    pub commands: HashMap<Rc<String>, CommandFn>,
 }
 
 impl Default for CommandRegistry {
@@ -52,23 +51,29 @@ impl CommandRegistry {
         }
     }
 
-    pub fn add_new(&mut self, command: Rc<str>, function: CommandFn) {
+    pub fn add_new(&mut self, command: Rc<String>, function: CommandFn) {
         self.commands.insert(command, function);
     }
 
-    pub fn execute(&self, command: &str, args: SplitWhitespace) {
-        if let Some(&command_fn) = self.commands.get(command) {
-            command_fn(args, self);
-        } else if let Some(path) = find_in_path(command) {
-            drop(execute_command(args, path))
+    pub fn execute(&self, command: String, args: Vec<String>) {
+        if let Some(builtin) = self.commands.get(&Rc::from(command.clone())) {
+            builtin(args, self);
+        } else if let Some(program) = find_in_path(command.clone()) {
+            match execute_command(args, program) {
+                Ok(status) => {
+                    if !status.success() {
+                        eprintln!("{}: failed with status {}", command, status);
+                    }
+                }
+                Err(e) => eprintln!("{}: failed with error {:?}", command, e),
+            }
         } else {
-            eprintln!("{command}: command not found");
+            eprintln!("{command}: not found");
         }
     }
 }
 
-pub fn execute_command(args: SplitWhitespace, program: PathBuf) -> Result<ExitStatus, Error> {
-    let args: Vec<&str> = args.collect();
+pub fn execute_command(args: Vec<String>, program: PathBuf) -> Result<ExitStatus, Error> {
     let mut command = Command::new(program);
     command.args(args);
 
@@ -81,11 +86,11 @@ pub fn execute_command(args: SplitWhitespace, program: PathBuf) -> Result<ExitSt
     }
 }
 
-pub fn find_in_path(command: &str) -> Option<PathBuf> {
+pub fn find_in_path(command: String) -> Option<PathBuf> {
     let path = env::var("PATH").unwrap_or_default();
     let mut pathdir: Option<PathBuf> = None;
     for dir in path.split(':') {
-        let command_path = Path::new(dir).join(command);
+        let command_path = Path::new(dir).join(&command);
         if command_path.exists() {
             pathdir = Some(command_path);
             break;

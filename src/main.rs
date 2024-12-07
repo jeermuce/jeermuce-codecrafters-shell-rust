@@ -14,11 +14,11 @@ pub mod commands;
 
 fn main() {
     let mut registry = CommandRegistry::new();
-    registry.add_new(Rc::from("exit"), exit_command);
-    registry.add_new(Rc::from("echo"), echo_command);
-    registry.add_new(Rc::from("type"), type_command);
-    registry.add_new(Rc::from("pwd"), pwd_command);
-    registry.add_new(Rc::from("cd"), cd_command);
+    registry.add_new(Rc::from("exit".to_string()), exit_command);
+    registry.add_new(Rc::from("echo".to_string()), echo_command);
+    registry.add_new(Rc::from("type".to_string()), type_command);
+    registry.add_new(Rc::from("pwd".to_string()), pwd_command);
+    registry.add_new(Rc::from("cd".to_string()), cd_command);
 
     run_shell(registry);
 }
