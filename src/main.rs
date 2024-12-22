@@ -1,8 +1,11 @@
 //use std::cell::RefCell; // TODO: learn how this is used for mutations
 
-use std::rc::Rc;
+pub mod parser;
 pub mod shell;
+
 use commands::cd::cd_command;
+use std::rc::Rc;
+
 use commands::echo::echo_command;
 use commands::exit::exit_command;
 use commands::pwd::pwd_command;
